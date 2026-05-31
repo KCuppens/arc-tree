@@ -21,10 +21,10 @@
   "dependencies": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/arc-tree.git"
+    "url": "https://github.com/KCuppens/arc-tree.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/arc-tree/issues"
+    "url": "https://github.com/KCuppens/arc-tree/issues"
   },
-  "homepage": "https://github.com/your-org/arc-tree#readme"
+  "homepage": "https://github.com/KCuppens/arc-tree#readme"
 }
