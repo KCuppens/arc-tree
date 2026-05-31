@@ -10,7 +10,15 @@
     "CHANGELOG.md",
     "LICENSE"
   ],
-  "keywords": ["arc", "arc-lang", "cms", "tree", "hierarchy", "mptt", "drag-and-drop"],
+  "keywords": [
+    "arc",
+    "arc-lang",
+    "cms",
+    "tree",
+    "hierarchy",
+    "mptt",
+    "drag-and-drop"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -21,7 +29,7 @@
   "dependencies": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/KCuppens/arc-tree.git"
+    "url": "git+https://github.com/KCuppens/arc-tree.git"
   },
   "bugs": {
     "url": "https://github.com/KCuppens/arc-tree/issues"
