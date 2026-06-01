@@ -7,6 +7,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+<!-- Describe changes here as they land, before the next release tag -->
+
+---
+
 ## [0.1.0] — 2026-05-31
 
 ### Added

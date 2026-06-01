@@ -1,0 +1,65 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report. The more detail you provide, the faster we can fix it.
+
+  - type: input
+    id: version
+    attributes:
+      label: arc-tree version
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: arc-version
+    attributes:
+      label: Arc version
+      placeholder: "e.g. 0.3.1 (run arc --version)"
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      placeholder: "e.g. Bun 1.1.0 / Node 20.11.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what actually occurred?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a page with a parent
+        2. Open /admin/pages
+        3. Switch to tree view
+        4. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant arc.config.json
+      description: Paste the `tree` section (you can omit secrets)
+      render: json
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output or logs
+      render: shell

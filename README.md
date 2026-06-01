@@ -1,5 +1,9 @@
 # arc-tree
 
+[![CI](https://github.com/KCuppens/arc-tree/actions/workflows/ci.yml/badge.svg)](https://github.com/KCuppens/arc-tree/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/arc-tree)](https://www.npmjs.com/package/arc-tree)
+[![license](https://img.shields.io/npm/l/arc-tree)](LICENSE)
+
 Tree-view mixin for [Arc](https://arc-lang.com) CMS projects. Adds collapsible, drag-and-drop hierarchy to any CMS entity (pages, groups, or custom models) using a **materialized path** strategy — one SQL index, O(log n + k) subtree reads, no recursive CTEs at runtime.
 
 ```

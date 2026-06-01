@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest something new or an improvement to existing behaviour
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests are welcome. Please check open issues first to avoid duplicates.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Concrete use case is more useful than an abstract request.
+      placeholder: "I'm building a category tree and want to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work? API, UI change, config option?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Workarounds you already tried, or different approaches you thought about.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Would you be willing to open a PR for this?
+      options:
+        - label: Yes, I can submit a pull request
