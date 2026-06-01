@@ -62,13 +62,10 @@
       const subtree = allRows.filter(r => r.path == plan.oldPath || (r.path || "").startsWith(plan.oldPath + "/"))
       db.transaction(() => {
         subtree.forEach(row => {
-          const np = plan.newPath + (row.path || "").slice(plan.oldPath.length)
-          const nd = Math.max(0, (row.depth || 0) + plan.depthDelta)
-          db.pages.update(row.id, {
-            path:     np,
-            depth:    nd,
-            parentId: String(row.id) == String(nodeId) ? (newParentId ? parseInt(newParentId) : null) : row.parentId
-          })
+          const newPath        = plan.newPath + (row.path || "").slice(plan.oldPath.length)
+          const newDepth       = Math.max(0, (row.depth || 0) + plan.depthDelta)
+          const updatedParentId = String(row.id) == String(nodeId) ? (newParentId ? parseInt(newParentId) : null) : row.parentId
+          db.pages.update(row.id, { path: newPath, depth: newDepth, parentId: updatedParentId })
         })
       })
 
@@ -89,13 +86,10 @@
       const subtree = allRows.filter(r => r.path == plan.oldPath || (r.path || "").startsWith(plan.oldPath + "/"))
       db.transaction(() => {
         subtree.forEach(row => {
-          const np = plan.newPath + (row.path || "").slice(plan.oldPath.length)
-          const nd = Math.max(0, (row.depth || 0) + plan.depthDelta)
-          db.groups.update(row.id, {
-            path:     np,
-            depth:    nd,
-            parentId: String(row.id) == String(nodeId) ? (newParentId ? parseInt(newParentId) : null) : row.parentId
-          })
+          const newPath        = plan.newPath + (row.path || "").slice(plan.oldPath.length)
+          const newDepth       = Math.max(0, (row.depth || 0) + plan.depthDelta)
+          const updatedParentId = String(row.id) == String(nodeId) ? (newParentId ? parseInt(newParentId) : null) : row.parentId
+          db.groups.update(row.id, { path: newPath, depth: newDepth, parentId: updatedParentId })
         })
       })
 

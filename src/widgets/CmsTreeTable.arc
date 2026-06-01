@@ -79,8 +79,8 @@ widget CmsTreeTable(
 
     /* ─── row cache — built once at init, avoids repeated querySelectorAll ─── */
     var rowList  = [];
-    var rowMap   = {};   /* id string → <tr> */
-    var childIds = {};   /* parentId string → [childId, ...] */
+    var rowMap   = {};
+    var childIds = {};
 
     function buildCache() {
       rowList  = Array.from(table.querySelectorAll(".arc-tree-row"));
@@ -191,7 +191,7 @@ widget CmsTreeTable(
             window.location.reload();
           }
         })
-        .catch(function () { showToast("Move failed — please try again", "error"); })
+        .catch(function (err) { console.error("[arc-tree] moveNode failed:", err); showToast("Move failed — please try again", "error"); })
         .finally(function () {
           isMoving  = false;
           dragId    = null;
