@@ -20,8 +20,9 @@ widget CmsParentPicker(
       attr bind:value="{name}"
       attr aria-label="{ariaLabel}"
       option value="" "— No parent (root level) —"
+      const excludeSet = new Set(excludeIds.map(String))
       for opt in options
-        if !excludeIds.map(String).includes(String(opt.id))
+        if !excludeSet.has(String(opt.id))
           option value="{opt.id}" "{opt.label}"
 
   design

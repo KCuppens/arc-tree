@@ -1,3 +1,5 @@
+const { computeMove, remapPath } = require('../lib/path-utils')
+
 @group "/admin" @auth(admin, editor)
 
   # ── GET /admin/tree/:model ────────────────────────────────────────────────
@@ -26,17 +28,20 @@
     if newParentId && !/^\d+$/.test(newParentId)
       return json({ error: "Invalid parent id" }, 422)
 
-    const { computeMove, subtreeRows, remapPath } = require('../lib/path-utils')
     const dbTable    = db[model]
     const entityType = ENTITY_TYPES[model]
-    const allRows    = dbTable.findMany({})
-    const node       = allRows.find(r => String(r.id) == String(nodeId))
-    const plan       = computeMove(String(nodeId), newParentId, node, allRows)
+
+    const node      = dbTable.findFirst({ where: { id: nodeId } })
+    const newParent = newParentId ? dbTable.findFirst({ where: { id: parseInt(newParentId) } }) : null
+    const plan      = computeMove(String(nodeId), newParentId, node, newParent ? [node, newParent] : [node])
     if plan.error return json({ error: plan.error }, 422)
     if !plan.oldPath return json({ error: "Node has no path — run arc cms add tree to backfill" }, 500)
 
+    const descendants = dbTable.findMany({ where: { path: { startsWith: plan.oldPath + "/" } } })
+    const subtree     = [node, ...descendants]
+
     db.transaction(() => {
-      subtreeRows(allRows, plan.oldPath).forEach(row => {
+      subtree.forEach(row => {
         const newPath         = remapPath(row.path || "", plan.oldPath, plan.newPath)
         const newDepth        = Math.max(0, (row.depth || 0) + plan.depthDelta)
         const updatedParentId = String(row.id) == String(nodeId) ? (newParentId ? parseInt(newParentId) : null) : row.parentId
@@ -44,9 +49,13 @@
       })
     })
 
-    db.auditlogs.create({
-      actorId: session.userId, action: "update", entityType: entityType,
-      entityId: String(nodeId),
-      after: JSON.stringify({ path: plan.newPath, parentId: newParentId ?? null })
-    })
+    try {
+      db.auditlogs.create({
+        actorId: session.userId, action: "update", entityType: entityType,
+        entityId: String(nodeId),
+        after: JSON.stringify({ path: plan.newPath, parentId: newParentId ?? null })
+      })
+    } catch (err) {
+      console.error("[arc-tree] audit log failed:", err)
+    }
     return json({ ok: true, path: plan.newPath })

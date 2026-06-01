@@ -80,9 +80,10 @@ widget CmsTreeTable(
     var moveUrl    = table.dataset.moveUrl || "";
 
     /* ─── row cache — built once at init, avoids repeated querySelectorAll ─── */
-    var rowList  = [];
-    var rowMap   = {};
-    var childIds = {};
+    var rowList    = [];
+    var rowMap     = {};
+    var childIds   = {};
+    var visibleRows = [];
 
     function buildCache() {
       rowList  = Array.from(table.querySelectorAll(".arc-tree-row"));
@@ -92,6 +93,9 @@ widget CmsTreeTable(
         var id  = String(tr.dataset.treeId);
         var pid = tr.dataset.treeParent ? String(tr.dataset.treeParent) : "";
         rowMap[id] = tr;
+        tr._cell    = tr.querySelector(".arc-tree-cell-label");
+        tr._toggle  = tr.querySelector(".arc-tree-toggle");
+        tr._leafPad = tr.querySelector(".arc-tree-leaf-pad");
         if (pid) {
           if (!childIds[pid]) childIds[pid] = [];
           childIds[pid].push(id);
@@ -128,9 +132,9 @@ widget CmsTreeTable(
         var depth   = parseInt(tr.dataset.treeDepth) || 0;
         var nodeId  = String(tr.dataset.treeId);
         var key     = tr.dataset.treeParent ? String(tr.dataset.treeParent) : "__root__";
-        var cell    = tr.querySelector(".arc-tree-cell-label");
-        var toggle  = tr.querySelector(".arc-tree-toggle");
-        var leafPad = tr.querySelector(".arc-tree-leaf-pad");
+        var cell    = tr._cell;
+        var toggle  = tr._toggle;
+        var leafPad = tr._leafPad;
         var leaf    = !hasChildren(nodeId);
 
         if (cell)    cell.style.paddingLeft = (depth * 20 + 12) + "px";
@@ -145,12 +149,14 @@ widget CmsTreeTable(
     /* ─── refresh: show/hide rows + aria-expanded on both toggle and row ─── */
     function refresh() {
       var vis = computeVisible();
+      visibleRows = [];
       rowList.forEach(function (tr) {
         var nodeId  = String(tr.dataset.treeId);
         tr.hidden   = !vis[nodeId];
+        if (vis[nodeId]) visibleRows.push(tr);
 
         var open   = expanded.has(nodeId);
-        var toggle = tr.querySelector(".arc-tree-toggle");
+        var toggle = rowMap[nodeId] ? rowMap[nodeId]._toggle : tr.querySelector(".arc-tree-toggle");
         if (toggle) {
           toggle.textContent = open ? "▼" : "▶";
           toggle.setAttribute("aria-expanded", String(open));
@@ -202,13 +208,18 @@ widget CmsTreeTable(
         });
     }
 
+    var toastEl = null;
     function showToast(msg, type) {
-      var el = document.createElement("div");
-      el.className = "arc-tree-toast arc-tree-toast--" + (type || "info");
-      el.setAttribute("role", "alert");
-      el.textContent = msg;
-      document.body.appendChild(el);
-      setTimeout(function () { el.remove(); }, 4000);
+      if (!toastEl) {
+        toastEl = document.createElement("div");
+        toastEl.setAttribute("role", "alert");
+        document.body.appendChild(toastEl);
+      }
+      toastEl.className = "arc-tree-toast arc-tree-toast--" + (type || "info");
+      toastEl.textContent = msg;
+      clearTimeout(toastEl._hideTimer);
+      toastEl._hideTimer = setTimeout(function () { toastEl.hidden = true; }, 4000);
+      toastEl.hidden = false;
     }
 
     /* ─── click: toggle expand ─── */
@@ -226,14 +237,14 @@ widget CmsTreeTable(
       var nodeId = String(tr.dataset.treeId);
 
       if (e.key === " ") {
-        var toggle = tr.querySelector(".arc-tree-toggle");
+        var toggle = tr._toggle;
         if (toggle && !toggle.hidden) { e.preventDefault(); toggleExpand(nodeId); }
         return;
       }
 
       if (e.key === "Enter") {
         e.preventDefault();
-        var toggle = tr.querySelector(".arc-tree-toggle");
+        var toggle = tr._toggle;
         if (toggle && !toggle.hidden) {
           toggleExpand(nodeId);
         } else {
@@ -243,7 +254,7 @@ widget CmsTreeTable(
         return;
       }
 
-      var visible = rowList.filter(function (r) { return !r.hidden; });
+      var visible = visibleRows;
       var idx     = visible.indexOf(tr);
 
       if (e.key === "ArrowDown") { e.preventDefault(); if (visible[idx + 1]) visible[idx + 1].focus(); }
