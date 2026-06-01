@@ -23,14 +23,15 @@ widget CmsTreeTable(
   entityUrl:  String,
   moveUrl:    String = "",
   col2Header: String = "",
-  draggable:  Bool   = true
+  draggable:  Bool   = true,
+  label:      String = "Content tree"
 )
 
   col class="arc-tree-outer"
     col class="!table-wrap"
       table class="!table arc-tree-table"
         attr role="treegrid"
-        attr aria-label="Content tree"
+        attr aria-label="{label}"
         attr data-move-url="{moveUrl}"
         thead
           tr
@@ -49,6 +50,7 @@ widget CmsTreeTable(
               attr tabindex="0"
               td class="arc-tree-cell-label" attr role="gridcell"
                 button class="arc-tree-toggle"
+                  attr type="button"
                   attr aria-label="Expand"
                   attr data-toggle-id="{row.id}"
                   attr tabindex="-1"
@@ -57,51 +59,73 @@ widget CmsTreeTable(
                 text class="arc-tree-label" "{row.label}"
               if col2Header != ""
                 td attr role="gridcell"
-                  if row.badge != ""
+                  if row.badge
                     text class="!badge arc-tree-badge" "{row.badge}"
-                  if row.secondary != ""
+                  if row.secondary
                     text class="arc-tree-secondary" "{row.secondary}"
               td class="arc-tree-actions" attr role="gridcell"
-                link href="{entityUrl}/{row.id}"
-                  button class="!btn !btn--ghost !btn--sm" attr tabindex="-1" "Edit"
+                link href="{entityUrl}/{row.id}" class="!btn !btn--ghost !btn--sm arc-tree-edit-link" attr tabindex="-1" "Edit"
 
   @raw '<script>
 (function () {
   "use strict";
 
   document.querySelectorAll(".arc-tree-table").forEach(function (table) {
-    var expanded  = new Set();
-    var dragId    = null;
-    var isMoving  = false;
-    var moveUrl   = table.dataset.moveUrl || "";
+    var expanded   = new Set();
+    var dragId     = null;
+    var dropTarget = null;
+    var isMoving   = false;
+    var moveUrl    = table.dataset.moveUrl || "";
 
-    /* ─── row helpers ─── */
-    function allRows() {
-      return Array.from(table.querySelectorAll(".arc-tree-row"));
+    /* ─── row cache — built once at init, avoids repeated querySelectorAll ─── */
+    var rowList  = [];
+    var rowMap   = {};   /* id string → <tr> */
+    var childIds = {};   /* parentId string → [childId, ...] */
+
+    function buildCache() {
+      rowList  = Array.from(table.querySelectorAll(".arc-tree-row"));
+      rowMap   = {};
+      childIds = {};
+      rowList.forEach(function (tr) {
+        var id  = String(tr.dataset.treeId);
+        var pid = tr.dataset.treeParent ? String(tr.dataset.treeParent) : "";
+        rowMap[id] = tr;
+        if (pid) {
+          if (!childIds[pid]) childIds[pid] = [];
+          childIds[pid].push(id);
+        }
+      });
     }
 
-    function rowById(id) {
-      return table.querySelector(".arc-tree-row[data-tree-id=\"" + id + "\"]");
+    function rowById(id) { return rowMap[String(id)] || null; }
+    function hasChildren(nodeId) { return !!(childIds[String(nodeId)] && childIds[String(nodeId)].length); }
+
+    /* ─── O(n) linear visibility — rows are path-sorted so parent always precedes child ─── */
+    function computeVisible() {
+      var vis = {};
+      rowList.forEach(function (tr) {
+        var id  = String(tr.dataset.treeId);
+        var pid = tr.dataset.treeParent ? String(tr.dataset.treeParent) : "";
+        vis[id] = !pid || !!(vis[pid] && expanded.has(pid));
+      });
+      return vis;
     }
 
-    function hasChildren(nodeId) {
-      return !!table.querySelector(".arc-tree-row[data-tree-parent=\"" + nodeId + "\"]");
-    }
-
-    function isVisible(tr) {
-      var depth = parseInt(tr.dataset.treeDepth) || 0;
-      if (depth === 0) return true;
-      var parentId = String(tr.dataset.treeParent || "");
-      if (!expanded.has(parentId)) return false;
-      var parentTr = rowById(parentId);
-      return parentTr ? isVisible(parentTr) : false;
-    }
-
-    /* ─── indentation (set after render; avoids arithmetic in Arc templates) ─── */
+    /* ─── indentation + aria-setsize/posinset ─── */
     function applyLayout() {
-      allRows().forEach(function (tr) {
+      var sibCount = {};
+      var sibIdx   = {};
+      rowList.forEach(function (tr) {
+        var id  = String(tr.dataset.treeId);
+        var key = tr.dataset.treeParent ? String(tr.dataset.treeParent) : "__root__";
+        sibCount[key] = (sibCount[key] || 0) + 1;
+        sibIdx[id]    = sibCount[key];
+      });
+
+      rowList.forEach(function (tr) {
         var depth   = parseInt(tr.dataset.treeDepth) || 0;
         var nodeId  = String(tr.dataset.treeId);
+        var key     = tr.dataset.treeParent ? String(tr.dataset.treeParent) : "__root__";
         var cell    = tr.querySelector(".arc-tree-cell-label");
         var toggle  = tr.querySelector(".arc-tree-toggle");
         var leafPad = tr.querySelector(".arc-tree-leaf-pad");
@@ -110,21 +134,30 @@ widget CmsTreeTable(
         if (cell)    cell.style.paddingLeft = (depth * 20 + 12) + "px";
         if (toggle)  { toggle.hidden = leaf; toggle.setAttribute("aria-label", expanded.has(nodeId) ? "Collapse" : "Expand"); }
         if (leafPad) leafPad.hidden = !leaf;
+
+        tr.setAttribute("aria-setsize",  String(sibCount[key] || 1));
+        tr.setAttribute("aria-posinset", String(sibIdx[nodeId] || 1));
       });
     }
 
-    /* ─── expand / collapse ─── */
+    /* ─── refresh: show/hide rows + aria-expanded on both toggle and row ─── */
     function refresh() {
-      allRows().forEach(function (tr) {
+      var vis = computeVisible();
+      rowList.forEach(function (tr) {
         var nodeId  = String(tr.dataset.treeId);
-        var visible = isVisible(tr);
-        tr.hidden   = !visible;
-        var toggle  = tr.querySelector(".arc-tree-toggle");
+        tr.hidden   = !vis[nodeId];
+
+        var open   = expanded.has(nodeId);
+        var toggle = tr.querySelector(".arc-tree-toggle");
         if (toggle) {
-          var open = expanded.has(nodeId);
           toggle.textContent = open ? "▼" : "▶";
           toggle.setAttribute("aria-expanded", String(open));
           toggle.setAttribute("aria-label", open ? "Collapse" : "Expand");
+        }
+        if (hasChildren(nodeId)) {
+          tr.setAttribute("aria-expanded", String(open));
+        } else {
+          tr.removeAttribute("aria-expanded");
         }
       });
     }
@@ -137,16 +170,20 @@ widget CmsTreeTable(
 
     /* ─── move via API ─── */
     function moveNode(fromId, toParentId) {
-      if (isMoving) return;
+      if (!moveUrl || isMoving) return;
       isMoving = true;
       table.classList.add("arc-tree--moving");
+      table.setAttribute("aria-busy", "true");
       fetch(moveUrl + "/" + fromId + "/move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({ newParentId: toParentId })
       })
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (body) {
           if (body.error) {
             showToast(body.error, "error");
@@ -156,14 +193,17 @@ widget CmsTreeTable(
         })
         .catch(function () { showToast("Move failed — please try again", "error"); })
         .finally(function () {
-          isMoving = false;
+          isMoving  = false;
+          dragId    = null;
           table.classList.remove("arc-tree--moving");
+          table.removeAttribute("aria-busy");
         });
     }
 
     function showToast(msg, type) {
       var el = document.createElement("div");
       el.className = "arc-tree-toast arc-tree-toast--" + (type || "info");
+      el.setAttribute("role", "alert");
       el.textContent = msg;
       document.body.appendChild(el);
       setTimeout(function () { el.remove(); }, 4000);
@@ -177,19 +217,31 @@ widget CmsTreeTable(
       if (tr) toggleExpand(String(tr.dataset.treeId));
     });
 
-    /* ─── keyboard: Space/Enter = expand; Arrow keys = navigate ─── */
+    /* ─── keyboard: Space = toggle; Enter = toggle (parent) or edit (leaf); Arrows = navigate ─── */
     table.addEventListener("keydown", function (e) {
       var tr = e.target.closest(".arc-tree-row");
       if (!tr) return;
       var nodeId = String(tr.dataset.treeId);
 
-      if (e.key === " " || e.key === "Enter") {
+      if (e.key === " ") {
         var toggle = tr.querySelector(".arc-tree-toggle");
         if (toggle && !toggle.hidden) { e.preventDefault(); toggleExpand(nodeId); }
         return;
       }
 
-      var visible = allRows().filter(function (r) { return !r.hidden; });
+      if (e.key === "Enter") {
+        e.preventDefault();
+        var toggle = tr.querySelector(".arc-tree-toggle");
+        if (toggle && !toggle.hidden) {
+          toggleExpand(nodeId);
+        } else {
+          var editLink = tr.querySelector(".arc-tree-edit-link");
+          if (editLink) editLink.click();
+        }
+        return;
+      }
+
+      var visible = rowList.filter(function (r) { return !r.hidden; });
       var idx     = visible.indexOf(tr);
 
       if (e.key === "ArrowDown") { e.preventDefault(); if (visible[idx + 1]) visible[idx + 1].focus(); }
@@ -202,58 +254,63 @@ widget CmsTreeTable(
         e.preventDefault();
         if (expanded.has(nodeId)) { expanded.delete(nodeId); refresh(); }
         else {
-          var parentId = String(tr.dataset.treeParent || "");
-          var parentTr = rowById(parentId);
+          var parentTr = rowById(String(tr.dataset.treeParent || ""));
           if (parentTr) parentTr.focus();
         }
       }
     });
 
-    /* ─── drag and drop ─── */
+    /* ─── drag and drop (delegated to tbody — 5 listeners instead of 5×N) ─── */
     if (moveUrl) {
-      allRows().forEach(function (tr) {
-        tr.setAttribute("draggable", "true");
+      rowList.forEach(function (tr) { tr.setAttribute("draggable", "true"); });
 
-        tr.addEventListener("dragstart", function (e) {
+      var tbody = table.querySelector("tbody");
+      if (tbody) {
+        tbody.addEventListener("dragstart", function (e) {
+          var tr = e.target.closest(".arc-tree-row");
+          if (!tr) return;
           dragId = String(tr.dataset.treeId);
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", dragId);
-          /* Defer class to next frame so the drag image captures the un-dimmed state */
+          /* Defer so drag image captures un-dimmed state */
           requestAnimationFrame(function () { tr.classList.add("arc-tree-dragging"); });
         });
 
-        tr.addEventListener("dragend", function () {
+        tbody.addEventListener("dragend", function (e) {
+          var tr = e.target.closest(".arc-tree-row");
           dragId = null;
-          tr.classList.remove("arc-tree-dragging");
-          table.querySelectorAll(".arc-tree-drop-target").forEach(function (el) {
-            el.classList.remove("arc-tree-drop-target");
-          });
+          if (tr) tr.classList.remove("arc-tree-dragging");
+          if (dropTarget) { dropTarget.classList.remove("arc-tree-drop-target"); dropTarget = null; }
         });
 
-        tr.addEventListener("dragover", function (e) {
-          if (!dragId || dragId === String(tr.dataset.treeId)) return;
+        tbody.addEventListener("dragover", function (e) {
+          var tr = e.target.closest(".arc-tree-row");
+          if (!tr || !dragId || dragId === String(tr.dataset.treeId)) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
-          table.querySelectorAll(".arc-tree-drop-target").forEach(function (el) {
-            el.classList.remove("arc-tree-drop-target");
-          });
-          tr.classList.add("arc-tree-drop-target");
+          if (tr !== dropTarget) {
+            if (dropTarget) dropTarget.classList.remove("arc-tree-drop-target");
+            dropTarget = tr;
+            tr.classList.add("arc-tree-drop-target");
+          }
         });
 
-        tr.addEventListener("dragleave", function (e) {
-          /* Only clear if leaving the row entirely, not a child element */
-          if (!tr.contains(e.relatedTarget)) tr.classList.remove("arc-tree-drop-target");
+        tbody.addEventListener("dragleave", function (e) {
+          if (!tbody.contains(e.relatedTarget)) {
+            if (dropTarget) { dropTarget.classList.remove("arc-tree-drop-target"); dropTarget = null; }
+          }
         });
 
-        tr.addEventListener("drop", function (e) {
+        tbody.addEventListener("drop", function (e) {
           e.preventDefault();
-          tr.classList.remove("arc-tree-drop-target");
-          if (!dragId || dragId === String(tr.dataset.treeId)) return;
+          var tr = e.target.closest(".arc-tree-row");
+          if (dropTarget) { dropTarget.classList.remove("arc-tree-drop-target"); dropTarget = null; }
+          if (!dragId || !tr || dragId === String(tr.dataset.treeId)) return;
           moveNode(dragId, String(tr.dataset.treeId));
         });
-      });
+      }
 
-      /* Drop on the table header = move to root */
+      /* Drop on table header = move to root */
       var thead = table.querySelector("thead");
       if (thead) {
         thead.addEventListener("dragover", function (e) {
@@ -274,6 +331,7 @@ widget CmsTreeTable(
     }
 
     /* ─── init ─── */
+    buildCache();
     applyLayout();
     refresh();
   });
@@ -376,8 +434,8 @@ widget CmsTreeTable(
       box-shadow: 0 4px 16px rgba(0,0,0,0.12)
     .arc-tree-toast--error
       background: #fef2f2
-      color: #ef4444
-      border: 1px solid rgba(239,68,68,0.25)
+      color: #b91c1c
+      border: 1px solid rgba(185,28,28,0.25)
     .arc-tree-toast--info
       background: var(--ui-bg-2, #f0f9ff)
       color: var(--ui-fg, #050d1f)

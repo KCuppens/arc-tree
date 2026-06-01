@@ -36,7 +36,7 @@ jobs:
         run: |
           node -e "
             const sql = require('fs').readFileSync('./src/schema/migrate.sql','utf8');
-            const checks = ['{model}', 'path', 'depth', 'parentId', 'RECURSIVE'];
+            const checks = ['{model}', 'path', 'depth', 'parentId', 'WITH RECURSIVE'];
             for (const s of checks) {
               if (!sql.includes(s)) { console.error('migrate.sql missing: ' + s); process.exit(1); }
             }

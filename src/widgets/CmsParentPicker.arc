@@ -9,16 +9,17 @@
 widget CmsParentPicker(
   name:       String,
   options:    Any,
-  excludeIds: Any = []
+  excludeIds: Any    = [],
+  ariaLabel:  String = "Parent"
 )
 
   col gap="4px"
     select class="!input arc-pp-select"
       attr bind:value="{name}"
-      attr aria-label="Parent page"
+      attr aria-label="{ariaLabel}"
       option value="" "— No parent (root level) —"
       for opt in options
-        if !excludeIds.includes(String(opt.id))
+        if !excludeIds.map(String).includes(String(opt.id))
           option value="{opt.id}" "{opt.label}"
 
   design

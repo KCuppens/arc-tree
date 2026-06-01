@@ -37,7 +37,7 @@ export interface TreeTableRow {
 export interface ParentPickerOption {
   id: number | string;
   depth: number;
-  /** Display label — include "—".repeat(depth) prefix for visual indentation */
+  /** Display label — must include "—".repeat(depth) prefix for visual indentation */
   label: string;
 }
 

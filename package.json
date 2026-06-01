@@ -2,14 +2,23 @@
   "name": "arc-tree",
   "version": "0.1.0",
   "description": "Tree-view mixin for Arc CMS — materialized-path hierarchy with drag-and-drop for any entity",
+  "author": "KCuppens",
   "main": "src/index.js",
   "types": "src/types.d.ts",
+  "exports": {
+    ".": "./src/index.js",
+    "./widgets/*": "./src/widgets/*",
+    "./schema/*": "./src/schema/*"
+  },
   "files": [
     "src/",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
+  "scripts": {
+    "test": "node -e \"const m=require('./src/index.js');['serverDir','serverRoutes','widgetsDir','version'].forEach(k=>{if(!m[k])throw new Error('Missing: '+k)});console.log('OK')\""
+  },
   "keywords": [
     "arc",
     "arc-lang",

@@ -5,7 +5,7 @@ Thank you for your interest in contributing!
 ## Dev setup
 
 ```bash
-git clone https://github.com/your-org/arc-tree
+git clone https://github.com/KCuppens/arc-tree
 cd arc-tree
 # no npm install needed — zero runtime dependencies
 
@@ -20,6 +20,13 @@ arc dev
 
 ```
 arc-tree/
+├── .github/
+│   ├── workflows/
+│   │   └── ci.yml               CI checks
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug.yml
+│   │   └── feature.yml
+│   └── pull_request_template.md
 ├── src/
 │   ├── index.js          Arc package contract (exports serverDir, widgetsDir)
 │   ├── server/
@@ -32,6 +39,9 @@ arc-tree/
 │   └── types.d.ts        TypeScript declarations
 ├── README.md
 ├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── SECURITY.md
 └── package.json
 ```
 
