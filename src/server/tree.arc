@@ -57,15 +57,20 @@
       const node    = allRows.find(r => String(r.id) == String(nodeId))
       const plan    = _moveSubtree(String(nodeId), newParentId, node, allRows)
       if plan.error return json({ error: plan.error }, 422)
+      if !plan.oldPath return json({ error: "Node has no path — run arc cms add tree to backfill" }, 500)
 
       const subtree = allRows.filter(r => r.path == plan.oldPath || (r.path || "").startsWith(plan.oldPath + "/"))
-      for row in subtree
-        const np = plan.newPath + (row.path || "").slice(plan.oldPath.length)
-        const nd = Math.max(0, (row.depth || 0) + plan.depthDelta)
-        if String(row.id) == String(nodeId)
-          db.pages.update(row.id, { path: np, depth: nd, parentId: newParentId ? parseInt(newParentId) : null })
-        else
-          db.pages.update(row.id, { path: np, depth: nd })
+      db.transaction(() => {
+        subtree.forEach(row => {
+          const np = plan.newPath + (row.path || "").slice(plan.oldPath.length)
+          const nd = Math.max(0, (row.depth || 0) + plan.depthDelta)
+          db.pages.update(row.id, {
+            path:     np,
+            depth:    nd,
+            parentId: String(row.id) == String(nodeId) ? (newParentId ? parseInt(newParentId) : null) : row.parentId
+          })
+        })
+      })
 
       db.auditlogs.create({
         actorId: session.userId, action: "update", entityType: "Page",
@@ -79,15 +84,20 @@
       const node    = allRows.find(r => String(r.id) == String(nodeId))
       const plan    = _moveSubtree(String(nodeId), newParentId, node, allRows)
       if plan.error return json({ error: plan.error }, 422)
+      if !plan.oldPath return json({ error: "Node has no path — run arc cms add tree to backfill" }, 500)
 
       const subtree = allRows.filter(r => r.path == plan.oldPath || (r.path || "").startsWith(plan.oldPath + "/"))
-      for row in subtree
-        const np = plan.newPath + (row.path || "").slice(plan.oldPath.length)
-        const nd = Math.max(0, (row.depth || 0) + plan.depthDelta)
-        if String(row.id) == String(nodeId)
-          db.groups.update(row.id, { path: np, depth: nd, parentId: newParentId ? parseInt(newParentId) : null })
-        else
-          db.groups.update(row.id, { path: np, depth: nd })
+      db.transaction(() => {
+        subtree.forEach(row => {
+          const np = plan.newPath + (row.path || "").slice(plan.oldPath.length)
+          const nd = Math.max(0, (row.depth || 0) + plan.depthDelta)
+          db.groups.update(row.id, {
+            path:     np,
+            depth:    nd,
+            parentId: String(row.id) == String(nodeId) ? (newParentId ? parseInt(newParentId) : null) : row.parentId
+          })
+        })
+      })
 
       db.auditlogs.create({
         actorId: session.userId, action: "update", entityType: "Group",

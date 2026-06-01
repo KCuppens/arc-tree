@@ -61,6 +61,10 @@ arc-tree uses **adjacency list + materialized path** — the best balance of rea
 | `path`    | TEXT            | `"1/5/12"` — ancestor IDs root → self           |
 | `depth`   | INTEGER         | 0 = root, 1 = first child, etc.                 |
 
+### SQLite FK note
+
+SQLite silently ignores `REFERENCES` constraints added via `ALTER TABLE ADD COLUMN`. The `parentId` FK is enforced at the application layer, not the DB layer. **When deleting a node, your edit handler must re-home its children before the delete**, or they will retain a stale `parentId` and appear as orphans until the next `arc cms add tree` run (which cleans them via the orphan-cleanup pass in `migrate.sql`).
+
 ### Why not MPTT (django-mptt style)?
 
 | Criterion         | Materialized path | MPTT (lft/rght) |
