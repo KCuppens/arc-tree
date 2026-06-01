@@ -1,9 +1,11 @@
 # CmsParentPicker — indented <select> for choosing a tree node's parent.
 #
-# options: flat array ordered by path ASC, each item: { id, depth, label }
-#          where label already has "—" depth-prefix applied server-side.
-# name:    the @state variable name to bind with bind:value="{name}"
-# excludeIds: string array — IDs to hide (pass current node + all its descendants
+# options:    Array<ParentPickerOption> — flat list ordered by path ASC.
+#             Each item: { id: number|string, depth: number, label: string }
+#             where label already has the "—" depth-prefix applied server-side.
+#             TypeScript: see ParentPickerOption in arc-tree/src/types.d.ts
+# name:       the @state variable name to bind with bind:value="{name}"
+# excludeIds: Array<string> — IDs to suppress (pass current node + descendants
 #             to prevent setting a node as its own ancestor)
 
 widget CmsParentPicker(

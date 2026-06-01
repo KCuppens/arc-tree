@@ -1,17 +1,18 @@
 # CmsTreeTable — tree-view replacement for flat CMS list tables.
 #
-# Each row object must have:
-#   id         — unique identifier (number or string)
-#   parentId   — parent id, or null/undefined for root nodes
-#   depth      — 0-based nesting level (0 = root)
-#   label      — primary display text (e.g. page title)
-#
-# Optional per-row fields:
-#   secondary  — shown in column 2 as muted text (e.g. slug)
-#   badge      — shown in column 2 as a tag chip (e.g. "draft", "live")
+# rows: Array<TreeTableRow> — flat list sorted by path ASC from GET /admin/tree/:model
+#   Required fields per row:
+#     id         — unique identifier (number or string)
+#     parentId   — parent id, or null/undefined for root nodes
+#     depth      — 0-based nesting level (0 = root)
+#     label      — primary display text (e.g. page title)
+#   Optional fields:
+#     secondary  — shown in column 2 as muted text (e.g. slug)
+#     badge      — shown in column 2 as a tag chip (e.g. "draft", "live")
+#   TypeScript: see TreeTableRow in arc-tree/src/types.d.ts
 #
 # Props:
-#   rows       — flat sorted array from GET /admin/tree/:model
+#   rows       — see above
 #   entityUrl  — base URL for Edit links (e.g. "/admin/pages")
 #   moveUrl    — POST endpoint for drag-and-drop (e.g. "/admin/tree/pages")
 #                omit or pass "" to disable drag-and-drop
@@ -33,6 +34,7 @@ widget CmsTreeTable(
         attr role="treegrid"
         attr aria-label="{label}"
         attr data-move-url="{moveUrl}"
+        attr data-draggable="{draggable}"
         thead
           tr
             th attr scope="col" "Name"
@@ -261,7 +263,7 @@ widget CmsTreeTable(
     });
 
     /* ─── drag and drop (delegated to tbody — 5 listeners instead of 5×N) ─── */
-    if (moveUrl) {
+    if (moveUrl && table.dataset.draggable !== 'false') {
       rowList.forEach(function (tr) { tr.setAttribute("draggable", "true"); });
 
       var tbody = table.querySelector("tbody");
