@@ -17,7 +17,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node -e \"const m=require('./src/index.js');['serverDir','serverRoutes','widgetsDir','version'].forEach(k=>{if(!m[k])throw new Error('Missing: '+k)});console.log('OK')\""
+    "test": "npx c8 --reporter=json-summary --include='src/**/*.js' node --test 'tests/*.test.js'",
+    "test:watch": "node --test --watch 'tests/*.test.js'",
+    "coverage": "npx c8 report --reporter=text"
   },
   "keywords": [
     "arc",
